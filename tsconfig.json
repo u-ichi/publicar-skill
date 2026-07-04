@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": [
+      "node",
+      "vitest"
+    ],
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "test/plugin/**/*.ts",
+    "test/plugin/node-ambient.d.ts"
+  ]
+}

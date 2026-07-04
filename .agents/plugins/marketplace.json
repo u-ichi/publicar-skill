@@ -1,0 +1,24 @@
+{
+  "name": "publicar-local",
+  "interface": {
+    "displayName": "publicar"
+  },
+  "plugins": [
+    {
+      "name": "publicar",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity",
+      "version": "1.5.1"
+    }
+  ],
+  "metadata": {
+    "version": "1.5.1"
+  }
+}

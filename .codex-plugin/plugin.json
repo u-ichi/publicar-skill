@@ -1,0 +1,40 @@
+{
+  "name": "publicar",
+  "version": "1.5.1",
+  "description": "Deploy HTML/ZIP files to publicar and get shareable URLs via API key authentication.",
+  "author": {
+    "name": "u1",
+    "email": "",
+    "url": ""
+  },
+  "homepage": "https://github.com/u-ichi/publicar-skill",
+  "repository": "https://github.com/u-ichi/publicar-skill",
+  "license": "MIT",
+  "keywords": [
+    "html",
+    "deploy",
+    "share",
+    "agent-skill",
+    "zip"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "publicar",
+    "shortDescription": "HTML/ZIP を共有 URL で配信する",
+    "longDescription": "HTML ファイルや ZIP アーカイブを publicar にデプロイし、共有 URL を取得する。API キー認証、プロジェクト管理、複数の公開設定レベルに対応。",
+    "developerName": "u1",
+    "category": "Productivity",
+    "capabilities": [
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Deploy this HTML to publicar",
+      "publicarにデプロイ",
+      "Share this HTML via publicar",
+      "HTMLを共有URLで配信して",
+      "Upload ZIP to publicar",
+      "ZIPをpublicarにアップロード"
+    ],
+    "brandColor": "#3b82f6"
+  }
+}

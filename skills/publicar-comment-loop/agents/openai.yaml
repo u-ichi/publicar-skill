@@ -1,0 +1,14 @@
+display_name: publicar Comment Loop
+short_description: 公開URLのコメント返信とHTML反映を支援する
+default_prompt: Use $publicar-comment-loop to process publicar review comments from this URL.
+trigger_examples:
+  - このURLのコメント処理して
+  - publicar コメント返信
+  - コメントループ
+  - publicar review comments
+  - publicar comment loop
+  - publicar の記事を直して
+  - resolved を反映して
+  - publicar 記事修正
+  - apply resolved comments
+  - publicar revise

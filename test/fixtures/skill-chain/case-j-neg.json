@@ -1,0 +1,11 @@
+{
+  "tool_name": "Skill",
+  "tool_input": {
+    "skill": "publicar:publicar-deploy"
+  },
+  "session_id": "test-session",
+  "transcript_path": "test/fixtures/skill-chain/sdk-no-intent-transcript.jsonl",
+  "prompt_id": "c846cb1a-71ec-4437-af81-6fecee248a39",
+  "cwd": "/Users/u1/agent/projects/gigi-navi",
+  "permission_mode": "default"
+}

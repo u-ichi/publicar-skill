@@ -1,0 +1,14 @@
+display_name: publicar Deploy
+short_description: HTML/ZIP を publicar にデプロイして共有 URL を取得する / Deploy HTML/ZIP to publicar and get shareable URLs.
+default_prompt: Deploy this HTML to publicar / publicarにデプロイして
+trigger_examples:
+  - publicarにデプロイ
+  - publicar deploy
+  - HTMLを共有
+  - 共有URLを発行
+  - publicarで配信
+  - publicar にアップロード
+  - deploy to publicar
+  - share HTML via publicar
+  - upload ZIP to publicar
+  - ZIPをpublicarにアップロード

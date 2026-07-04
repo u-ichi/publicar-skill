@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "publicar",
+  "version": "1.5.1",
+  "description": "Deploy HTML/ZIP files to publicar and get shareable URLs via API key authentication.",
+  "author": {
+    "name": "u1"
+  },
+  "license": "MIT",
+  "keywords": [
+    "html",
+    "deploy",
+    "share",
+    "agent-skill",
+    "zip"
+  ],
+  "skills": "./skills/"
+}

@@ -1,0 +1,21 @@
+{
+  "name": "publicar-local",
+  "owner": {
+    "name": "u1"
+  },
+  "metadata": {
+    "description": "publicar — HTML/ZIP を共有 URL で配信するサービスのプラグイン",
+    "version": "1.5.1"
+  },
+  "plugins": [
+    {
+      "name": "publicar",
+      "description": "Deploy HTML/ZIP files to publicar and get shareable URLs via API key authentication.",
+      "version": "1.5.1",
+      "author": {
+        "name": "u1"
+      },
+      "source": "./"
+    }
+  ]
+}
