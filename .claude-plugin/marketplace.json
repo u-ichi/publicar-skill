@@ -5,13 +5,13 @@
   },
   "metadata": {
     "description": "publicar — HTML/ZIP を共有 URL で配信するサービスのプラグイン",
-    "version": "2.0.0"
+    "version": "1.6.0"
   },
   "plugins": [
     {
       "name": "publicar",
       "description": "Deploy HTML/ZIP files to publicar and get shareable URLs via API key authentication.",
-      "version": "2.0.0",
+      "version": "1.6.0",
       "author": {
         "name": "u1"
       },
