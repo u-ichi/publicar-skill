@@ -56,6 +56,12 @@ node "$HELPER" deploy --artifact <HTMLまたはZIPパス> --project-id <ID> [--p
 
 `--origin` は canonical origin (scheme + host + port) のみ受け付ける。HTTPS 必須 (localhost だけ HTTP 可)、path / query / fragment / userinfo 付きは拒否される。
 
+**sandbox 実行時の権限**: helper は deploy 成功時に `~/.publicar/projects.json` へ派生記録を書く。
+書込不能のまま project を作成すると記録が失われ、再実行で project を重複作成し得るため、
+helper は外部 HTTP の前に保存先の書込可能性を検査し、書けなければ `project-record-unwritable`
+で通信 0 件のまま停止する。sandbox (書込制限付き) 環境で起動する場合は、
+**`~/.publicar` へ書込できる実行権限を確保してから helper を起動する**こと。
+
 ## デプロイ手順
 
 ### 1. 接続先の確認と明示
@@ -191,6 +197,8 @@ deploy 成功時、helper が `~/.publicar/projects.json` の `<profile>/<projec
 - `profile-ambiguous`: `--profile NAME` を付けて再実行
 - `env-endpoint-mismatch` / `env-credential-unverifiable`: 環境変数が保存 endpoint と不整合。env を外すか一致させる
 - `http-error`: API 失敗。message 内の HTTP status を確認 (401: API key 無効、403: スコープ不足、413: サイズ超過)
+- `project-record-unwritable`: `~/.publicar/projects.json` へ書込不能 (HTTP 未送信)。`~/.publicar` の書込権限を確保してから再実行する。**この error では project は作成されていない**
+- `project-record-failed`: project の作成/デプロイは endpoint 上で完了済みだが派生記録に失敗した部分成功。**同じ create を再実行しない** (project が重複作成される)。error 内 `created` の id / alias / url / endpoint を使い、権限を直してから `~/.publicar/projects.json` へ記録を手動同期するか、再デプロイは `deploy --project-id <created.id>` を使う
 
 ## API 仕様
 

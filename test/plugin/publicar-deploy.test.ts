@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, mkdir, readFile, stat, symlink, writeFile, rm } from "node:fs/promises";
+import { chmod, mkdtemp, mkdir, readFile, stat, symlink, writeFile, rm } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -660,6 +660,68 @@ describe("redirect 遮断: 選択 origin を越える転送をしない", () => 
     expect(result.code).not.toBe(0);
     expect(result.json?.error).toBe("http-redirect-blocked");
     expect(stubB.requests).toHaveLength(0);
+  });
+});
+
+describe("projects.json 書込不能時の fail-closed (TASK-017 permission-fix)", () => {
+  it("派生記録の保存先が書込不能なら create-and-deploy は HTTP 0 件で project-record-unwritable", async () => {
+    await writeProfiles({ a: { url: stubA.origin, api_key: stubA.apiKey } });
+    await setEndpoint(repoA, stubA.origin);
+    // ~/.publicar を読取専用にして sandbox の書込拒否を再現する
+    await chmod(join(home, ".publicar"), 0o555);
+
+    try {
+      const result = await helper(["create-and-deploy", "--artifact", join(repoA, "page.html")]);
+
+      expect(result.code).not.toBe(0);
+      expect(result.json?.error).toBe("project-record-unwritable");
+      // 外部 HTTP mutation が 1 件も発生しない (重複 project 作成の余地を残さない)
+      expect(stubA.requests).toHaveLength(0);
+      expect(stubB.requests).toHaveLength(0);
+    } finally {
+      await chmod(join(home, ".publicar"), 0o755);
+    }
+  });
+
+  it("deploy --project-id も書込不能なら HTTP 0 件で project-record-unwritable", async () => {
+    await writeProfiles({ a: { url: stubA.origin, api_key: stubA.apiKey } });
+    await setEndpoint(repoA, stubA.origin);
+    await chmod(join(home, ".publicar"), 0o555);
+
+    try {
+      const result = await helper(["deploy", "--artifact", join(repoA, "page.html"), "--project-id", "prj-x"]);
+
+      expect(result.code).not.toBe(0);
+      expect(result.json?.error).toBe("project-record-unwritable");
+      expect(stubA.requests).toHaveLength(0);
+      expect(stubB.requests).toHaveLength(0);
+    } finally {
+      await chmod(join(home, ".publicar"), 0o755);
+    }
+  });
+
+  it("通信前検査後に派生記録だけ失敗した場合、作成済み project 情報を保持した構造化 error を返す", async () => {
+    await writeProfiles({ a: { url: stubA.origin, api_key: stubA.apiKey } });
+    await setEndpoint(repoA, stubA.origin);
+    // 通信前検査 (存在しない projects.json → probe 書込) は通るが、実書込は dangling symlink 先で失敗する
+    await symlink(join(home, "no-such-dir", "projects.json"), join(home, ".publicar", "projects.json"));
+
+    const result = await helper(["create-and-deploy", "--artifact", join(repoA, "page.html")]);
+
+    expect(result.code).not.toBe(0);
+    expect(result.json?.error).toBe("project-record-failed");
+    // 外部 mutation は完了している (create + deploy)
+    expect(stubA.mutations().map((m) => m.url.split("?")[0])).toEqual([
+      "/api/v1/projects",
+      "/api/v1/projects/prj-a-1/deploy"
+    ]);
+    // agent が同じ create を再実行しない判断に必要な情報を保持する
+    const created = result.json?.created as Record<string, unknown>;
+    expect(created?.id).toBe("prj-a-1");
+    expect(created?.alias).toBe("alias-a-1");
+    expect(created?.url).toContain("/p/alias-a-1/");
+    expect(created?.endpoint).toBe(stubA.origin);
+    expect(String(result.json?.message)).toContain("再実行");
   });
 });
 

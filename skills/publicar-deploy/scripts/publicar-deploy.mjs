@@ -17,7 +17,7 @@
 import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
-import { chmod, lstat, mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, open, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, extname, join, resolve as resolvePath } from "node:path";
 import { promisify } from "node:util";
@@ -261,6 +261,47 @@ async function saveProfile(origin, apiKey, preferredAlias) {
   return alias;
 }
 
+// 外部 HTTP mutation の前に、派生記録 (~/.publicar/projects.json) の保存先へ実際に
+// 書き込めることを検査する。書込不能のまま project を作成すると、記録失敗 → 再実行で
+// project を重複作成し得るため、通信 0 件のまま停止する。検査は内容を変更せず、
+// 残骸ファイルも残さない (既存 file は書込 open のみ、未存在時は probe を作成後に削除)
+async function assertProjectRecordWritable() {
+  const dir = publicarDir();
+  const file = join(dir, "projects.json");
+  try {
+    if (existsSync(file)) {
+      const handle = await open(file, "r+");
+      await handle.close();
+    } else {
+      await mkdir(dir, { recursive: true });
+      const probe = join(dir, `.projects.json.precheck-${process.pid}`);
+      const handle = await open(probe, "wx");
+      await handle.close();
+      await unlink(probe);
+    }
+  } catch {
+    fail(
+      "project-record-unwritable",
+      `~/.publicar/projects.json へ書き込めません。sandbox 実行では ~/.publicar への書込権限を確保してから helper を起動してください (HTTP 要求は送信していません)`
+    );
+  }
+}
+
+// 通信前検査後に派生記録だけが失敗した場合の部分成功 error。外部作成済みの project 情報を
+// 保持して返し、呼び出し側が同じ create を再実行しない判断をできるようにする
+function failRecordAfterMutation(created) {
+  process.stderr.write(
+    `${JSON.stringify({
+      ok: false,
+      error: "project-record-failed",
+      message:
+        "project は endpoint 上で作成/デプロイ済みだが、~/.publicar/projects.json への派生記録に失敗した。同じ create を再実行せず、created の project を使って記録を手動同期すること",
+      created
+    })}\n`
+  );
+  process.exit(1);
+}
+
 // ---- deploy 派生記録: comment-loop が読む <profile>/<projectId> 形式を維持する ----
 
 async function recordProject(alias, projectId, record) {
@@ -431,6 +472,7 @@ async function commandCreateAndDeploy({ artifact, title, profile, bundleRoot }) 
   const { contentType, sourceKind, query } = classifyArtifact(repo.artifact);
   const bundleDir = bundleRoot === undefined ? null : await validateBundleRoot(bundleRoot, repo);
   const credential = await resolveCredential(endpoint, profile);
+  await assertProjectRecordWritable();
 
   // ここから先だけが HTTP。宛先は検査済みの endpoint のみ
   const projectTitle = title ?? basename(repo.artifact, extname(repo.artifact));
@@ -454,13 +496,17 @@ async function commandCreateAndDeploy({ artifact, title, profile, bundleRoot }) 
   // directory バンドル由来は一時 publish 出力でなく元 directory を記録する
   const recordDir = bundleDir ?? repo.baseDir;
   const recordKind = bundleDir === null ? sourceKind : "directory";
-  await recordProject(credential.alias, project.id, {
-    localDir: recordDir,
-    alias: project.alias,
-    url,
-    sourceKind: recordKind,
-    lastSyncedAt: new Date().toISOString()
-  });
+  try {
+    await recordProject(credential.alias, project.id, {
+      localDir: recordDir,
+      alias: project.alias,
+      url,
+      sourceKind: recordKind,
+      lastSyncedAt: new Date().toISOString()
+    });
+  } catch {
+    failRecordAfterMutation({ id: project.id, alias: project.alias, url, endpoint });
+  }
 
   succeed({
     command: "create-and-deploy",
@@ -491,6 +537,7 @@ async function commandDeploy({ artifact, projectId, profile, bundleRoot }) {
   const { contentType, sourceKind, query } = classifyArtifact(repo.artifact);
   const bundleDir = bundleRoot === undefined ? null : await validateBundleRoot(bundleRoot, repo);
   const credential = await resolveCredential(endpoint, profile);
+  await assertProjectRecordWritable();
 
   // ここから先だけが HTTP。project 作成 API は呼ばない
   const content = await readFile(repo.artifact);
@@ -505,12 +552,16 @@ async function commandDeploy({ artifact, projectId, profile, bundleRoot }) {
   // project ID は repo-local 設定へ保存せず、派生記録の更新だけを行う (alias は既存値を保持)
   const recordDir = bundleDir ?? repo.baseDir;
   const recordKind = bundleDir === null ? sourceKind : "directory";
-  await recordProject(credential.alias, projectId, {
-    localDir: recordDir,
-    url,
-    sourceKind: recordKind,
-    lastSyncedAt: new Date().toISOString()
-  });
+  try {
+    await recordProject(credential.alias, projectId, {
+      localDir: recordDir,
+      url,
+      sourceKind: recordKind,
+      lastSyncedAt: new Date().toISOString()
+    });
+  } catch {
+    failRecordAfterMutation({ id: projectId, alias: null, url, endpoint });
+  }
 
   succeed({
     command: "deploy",
