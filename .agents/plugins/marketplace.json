@@ -15,10 +15,10 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Productivity",
-      "version": "1.5.1"
+      "version": "2.0.0"
     }
   ],
   "metadata": {
-    "version": "1.5.1"
+    "version": "2.0.0"
   }
 }

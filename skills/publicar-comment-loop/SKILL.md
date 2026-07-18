@@ -186,17 +186,12 @@ status は変更しない。thread は open のまま残し、ユーザーが pu
 ### (i) sourceKind 別に再デプロイする
 
 - `directory`: Skill ツールで `publicar-deploy` を呼び、`<localDir> --project-id <id> --profile <profile>` を渡す。`renderer-manifest.json` 付き directory 判定は `publicar-deploy` に任せる。
-- `single-html`: Skill ツールに `<localDir>/<path> --project-id <id> --profile <profile>` を渡す。Skill 呼び出しが使えない場合だけ、次の直接 API 呼び出しを fallback とする。直接 deploy は必ず `Content-Type: text/html`、`--data-binary @file`、`?path=index.html` で送る。multipart (`-F`) で送ると server に `multipart/form-data` として保存され、ブラウザがダウンロードダイアログを開く。
+- `single-html`: Skill ツールに `<localDir>/<path> --project-id <id> --profile <profile>` を渡す。
 - `zip`: unsupported として停止し、単一 HTML か directory バンドルで再デプロイするよう案内する。
 
-single HTML fallback:
-
-```bash
-curl -s -X POST "$PUBLICAR_URL/api/v1/projects/$PROJECT_ID/deploy?path=$PUBLICAR_PATH" \
-  -H "Authorization: Bearer $PUBLICAR_API_KEY" \
-  -H "Content-Type: text/html" \
-  --data-binary @"$HTML_FILE"
-```
+再デプロイは `publicar-deploy` skill (同 skill が起動する helper) だけを経路とする。
+`publicar-deploy` の helper / skill が使えない場合は、直接 API 呼び出しへ fallback せず、
+アップロードを行わずに停止して理由を報告する。
 
 ### (j) 失敗系を明示する
 

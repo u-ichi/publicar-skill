@@ -1,6 +1,6 @@
 {
   "name": "publicar",
-  "version": "1.5.1",
+  "version": "2.0.0",
   "description": "Deploy HTML/ZIP files to publicar and get shareable URLs via API key authentication.",
   "author": {
     "name": "u1",
