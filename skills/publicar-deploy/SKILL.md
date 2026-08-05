@@ -13,6 +13,16 @@ publicar は HTML/ZIP ファイルを共有 URL で配信するサービス。
 
 Deploy HTML files or ZIP archives to publicar via the bundled helper script. The helper resolves the target repo from the artifact path, reads the repo-local endpoint, verifies credentials, creates a project, and deploys — all in one fail-closed path.
 
+## 実行の原則
+
+- upload はユーザーが依頼した時だけ行う。レビューを頼まれた、成果物ができた、共有すると
+  便利そう、といった状況を upload の依頼と解釈しない。依頼が無いのに upload しない。
+- 依頼された場合も、helper を実行する前に **送る中身をユーザーへ提示する**。提示するのは
+  「対象パス」「送るファイル一覧 (ZIP / directory バンドルは全件。20 件を超える場合は
+  全件数と拡張子別の内訳)」「合計サイズ」。意図しないファイルが混ざっていないかを人が
+  判断できる状態にしてから実行する。
+- 提示に対してユーザーが中止・除外を指示したら実行しない。
+
 ## 言語方針 / Language behavior
 
 ユーザーの最新リクエストの言語に合わせて応答する。Follow the language of the latest user request.
@@ -86,7 +96,22 @@ helper は外部 HTTP の前に保存先の書込可能性を検査し、書け�
 
 選択・確認は skill (agent) がユーザーと行い、helper は `--origin` を機械入力として受けるだけで対話しない。
 
-### 3. デプロイ
+### 3. 送る中身の提示
+
+helper を実行する前に、「実行の原則」に従って対象パス・ファイル一覧・合計サイズを提示する。
+単一 HTML なら 1 ファイルとサイズ、ZIP / directory バンドルなら中身の一覧を出す。
+
+```bash
+# ZIP の場合
+unzip -l <ZIPパス>
+# directory バンドルの場合 (publish 前の元 directory を対象にする)
+find <ディレクトリ> -type f -not -path "*/.git/*" | head -40; echo "---"; du -sh <ディレクトリ>
+```
+
+一覧に意図しないファイル (個人情報を含む素材、作業中の一時ファイル、別案件の成果物など) が
+無いことをユーザーが確認できる形で示してから次へ進む。
+
+### 4. デプロイ
 
 ```bash
 node "$HELPER" create-and-deploy --artifact <パス> --title "<タイトル>"
@@ -107,7 +132,7 @@ node "$HELPER" deploy --artifact <パス> --project-id <ID> [--profile NAME]
 - endpoint 解決と credential の origin 一致検査は create-and-deploy と同じ fail-closed 経路
 - project ID は repo-local 設定へ保存されない (引数として渡すだけ)
 
-### 4. デプロイ後の報告
+### 5. デプロイ後の報告
 
 - 共有 URL
 - 接続先 (`endpoint` と `profile`)
