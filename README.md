@@ -1,6 +1,6 @@
 # publicar-skill
 
-Claude Code / Codex から publicar を操作するための plugin repo。plugin 名は既存インストールとの互換性を保つため `publicar` のまま維持する。
+Claude Code / Codex向けのpluginと、GitHub Actions向けのアップロードCLIを管理するrepo。plugin名は既存インストールとの互換性を保つため `publicar` のまま維持する。
 
 publicar 本体は https://github.com/u-ichi/publicar を参照する。API 互換性の基準は publicar 本体が配信する `/api/v1/openapi.json`。
 
@@ -9,14 +9,23 @@ publicar 本体は https://github.com/u-ichi/publicar を参照する。API 互�
 - `publicar-deploy`: HTML / ZIP を publicar にアップロードし、共有 URL を取得する。
 - `publicar-comment-loop`: publicar の公開 URL に付いたコメントを読み、返信案、HTML 修正案、承認後の反映と再デプロイを支援する。
 
-## Endpoint の選択 (repo ごと)
+## 利用する入口
+
+| 用途 | 入口 |
+|---|---|
+| 対話での公開、コメント修正後の再公開 | Node helper `skills/publicar-deploy/scripts/publicar-deploy.mjs` |
+| GitHub Actionsから既存プロジェクトの文書を自動更新 | Python CLI `skills/publicar-deploy/scripts/upload_publicar.py` |
+
+CI用Python CLIは、プロジェクト限定のアップロードキーと明示された接続先を使う。Python 3.12の標準ライブラリだけで動作し、pluginのインストールは不要。利用側へ送信コードをコピーせず、このrepoの確認済みコミットを固定して取得する。[入力、Actionsの設定、結合試験の手順](skills/publicar-deploy/references/ci-upload.md)を参照する。
+
+## Node helper の Endpoint の選択 (repo ごと)
 
 デプロイ先 endpoint は **artifact が属する git repo の repo-local 設定 `publicar.endpoint`** だけを使う。
 利用者ごとに endpoint URL が異なりうるため、repo の追跡ファイルには保存しない。
 global の current profile・環境変数・引数による別 endpoint への fallback / 一時上書きは行わず、
 endpoint 未設定の repo では通信前に停止する (誤爆防止)。
 
-操作はすべて helper (`skills/publicar-deploy/scripts/publicar-deploy.mjs`) 経由:
+Node helperを使う操作はすべて `skills/publicar-deploy/scripts/publicar-deploy.mjs` 経由:
 
 ```bash
 HELPER=skills/publicar-deploy/scripts/publicar-deploy.mjs
@@ -37,7 +46,7 @@ node "$HELPER" create-and-deploy --artifact <HTMLまたはZIP> [--title "タイ�
 - repo-local 設定に保存されるのは endpoint の canonical origin だけ。project ID / alias / API key は保存されない
 - API key は従来どおり `~/.publicar/profiles.json` (または CI secret) が管理元。helper は保存 endpoint と同一 origin の credential だけを使う
 
-### CI (非対話) 設定
+### APIキーを使うNode helperのCI設定
 
 CI では実行前に次の 2 点を設定する。未設定の場合 helper は通信前に失敗する。
 
@@ -67,6 +76,7 @@ codex plugin add publicar@publicar-local
 ```bash
 npm install
 npm test
+python3 -B -m unittest discover -s test/ci -p 'test_*.py' -v
 ```
 
 ## Versioning

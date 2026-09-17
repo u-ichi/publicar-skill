@@ -15,6 +15,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Test CI upload client
+        run: python3 -B -m unittest discover -s test/ci -p 'test_*.py' -v
       - name: Check plugin version consistency
         run: |
           node - <<'NODE'
