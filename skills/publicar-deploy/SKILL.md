@@ -11,13 +11,22 @@ publicar は HTML/ZIP ファイルを共有 URL で配信するサービス。
 
 ## Role
 
-Deploy HTML files or ZIP archives to publicar via the bundled helper script. The helper resolves the target repo from the artifact path, reads the repo-local endpoint, verifies credentials, creates a project, and deploys — all in one fail-closed path.
+HTML/ZIPの対話的な公開にはNode helperを使う。GitHub Actionsから既存プロジェクトを自動更新する場合は、CI用Python CLIを使う。
+
+## 実行方法の選択
+
+| 依頼 | 使用する入口 |
+|---|---|
+| 対話での新規公開、既存プロジェクトへの再公開、コメント修正後の反映 | この本文のNode helper `scripts/publicar-deploy.mjs` |
+| GitHub Actionsから、アップロード専用キーで既存プロジェクトを更新する仕組みの設定 | [CI用Python CLIの手順](references/ci-upload.md)を読んでから `scripts/upload_publicar.py` を設定する |
+
+CI用CLIは明示された接続先とプロジェクトだけへ送信する。Node helperの接続先設定やprofileを探す代替経路には使わない。以下の「実行の原則」は両方に適用し、その後の接続先選択、helperコマンド、credential、projects.jsonの説明はNode helperに適用する。
 
 ## 実行の原則
 
 - upload はユーザーが依頼した時だけ行う。レビューを頼まれた、成果物ができた、共有すると
   便利そう、といった状況を upload の依頼と解釈しない。依頼が無いのに upload しない。
-- 依頼された場合も、helper を実行する前に **送る中身をユーザーへ提示する**。提示するのは
+- 依頼された場合も、送信を実行する前に **送る中身をユーザーへ提示する**。提示するのは
   「対象パス」「送るファイル一覧 (ZIP / directory バンドルは全件。20 件を超える場合は
   全件数と拡張子別の内訳)」「合計サイズ」。意図しないファイルが混ざっていないかを人が
   判断できる状態にしてから実行する。
@@ -37,7 +46,7 @@ Deploy HTML files or ZIP archives to publicar via the bundled helper script. The
 - endpoint 未設定の repo では、下記「初回の endpoint 選択」を完了するまで通信しない
 - project はデプロイ内容ごとに選択済み endpoint 上で新規作成する。project ID や alias を repo 設定に保存・固定しない
 
-すべての設定・認証・API 通信は helper (`scripts/publicar-deploy.mjs`) が行う。
+Node helperを使う場合の設定・認証・API通信は、`scripts/publicar-deploy.mjs` が行う。
 **endpoint や API key を使った curl コマンドをこの skill の手順として組み立てない。**
 
 ## helper コマンド
@@ -196,7 +205,7 @@ node "$HELPER" "$@"
 
 publish は Python stdlib のみで動作し、外部依存のインストールは不要。
 
-## credential と CI
+## Node helper の credential と CI
 
 - API key は従来どおり `~/.publicar/profiles.json` (または CI secret) で管理する。helper は保存済み endpoint と **同一 origin** の credential だけを使う
 - 同一 origin に複数 profile がある場合は `profile-ambiguous` で停止する。ユーザーに選んでもらい `--profile NAME` を付けて再実行する
